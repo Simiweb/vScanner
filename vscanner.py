@@ -1,5 +1,6 @@
 from flask import Flask, render_template_string, request, jsonify
 import nmap
+import requests
 
 app = Flask(__name__)
 
@@ -9,7 +10,7 @@ def scannn(target):
     scanner = nmap.PortScanner()
 
     # Run the scan on the given target IP
-    scanner.scan(target)
+    scanner.scan(target, arguments='-p-')  # Use -p- to scan all ports
 
     results = []
     for host in scanner.all_hosts():
@@ -24,6 +25,17 @@ def scannn(target):
                 )
     print("Scan Results:", results)
     return results
+
+# Function to get the client IP address using an external API
+def get_client_ip():
+    try:
+        # Use an external API to get the real public IP address
+        response = requests.get('https://api.ipify.org?format=json')
+        ip_data = response.json()
+        return ip_data['ip']
+    except requests.RequestException:
+        # Fallback to Flask's remote_addr if the external request fails
+        return request.remote_addr
 
 # Define the main route for the website
 @app.route("/")
@@ -115,6 +127,26 @@ def index():
             .code-button:hover {
                 background-color: #218838;
             }
+
+            /* Client IP Button */
+            .ip-button {
+                position: fixed;
+                bottom: 80px;  /* Adjusted the gap to increase space between buttons */
+                right: 20px;
+                padding: 15px 25px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                transition: background-color 0.3s ease;
+            }
+
+            .ip-button:hover {
+                background-color: #0056b3;
+            }
         </style>
         <script>
             function callFunction() {
@@ -149,6 +181,22 @@ def index():
                     document.getElementById("result").innerText = "Error: " + error;
                 });
             }
+
+            function showClientIp() {
+                // Make an AJAX request to the /get-client-ip endpoint
+                fetch('/get-client-ip')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ip) {
+                        alert("Client IP: " + data.ip);
+                    } else {
+                        alert("Could not retrieve client IP.");
+                    }
+                })
+                .catch(error => {
+                    alert("Error: " + error);
+                });
+            }
         </script>
     </head>
     <body>
@@ -159,6 +207,9 @@ def index():
         
         <!-- Button to navigate to code page -->
         <a href="/code"><button class="code-button">View Source Code</button></a>
+
+        <!-- Button to show client IP -->
+        <button class="ip-button" onclick="showClientIp()">Show Client IP</button>
     </body>
     </html>
     """
@@ -178,6 +229,12 @@ def scan():
     except Exception as e:
         print("Error during scanning:", str(e))
         return jsonify({"error": str(e)}), 500
+
+# Route to get the client IP
+@app.route("/get-client-ip", methods=["GET"])
+def get_client_ip_route():
+    ip = get_client_ip()
+    return jsonify({"ip": ip})
 
 # Route to show the source code
 @app.route("/code")
@@ -235,6 +292,7 @@ def code_page():
         <pre id="sourceCode">
 from flask import Flask, render_template_string, request, jsonify
 import nmap
+import requests
 
 app = Flask(__name__)
 
@@ -264,10 +322,13 @@ if __name__ == "__main__":
 
         <script>
             function copyCode() {
-                const code = document.getElementById('sourceCode');
-                navigator.clipboard.writeText(code.textContent).then(() => {
-                    alert("Code copied to clipboard!");
-                });
+                const code = document.getElementById("sourceCode");
+                const range = document.createRange();
+                range.selectNode(code);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand("copy");
+                alert("Code copied to clipboard!");
             }
         </script>
     </body>
