@@ -1,6 +1,6 @@
 This is a Group Project for School, to build a Vulnerbility Scanner with python and Nmap.
 
-The Goal is to use it and being able to show all open ports of an Host.
+The Goal is to use it and being able to show all open ports of an Host or Networck (takes a long time).
 
 The Modules Nmap and Flask need to be installed:
 
